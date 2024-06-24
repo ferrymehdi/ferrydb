@@ -1,6 +1,5 @@
 import Database from "better-sqlite3";
 import events from 'events';
-
 const db = new Database("db.sqlite");
 
 type SchemaDefinition = {
@@ -15,9 +14,9 @@ type InferSchema<T extends SchemaDefinition> = {
     [K in keyof T]: T[K]['type'] extends StringConstructor ? string :
                     T[K]['type'] extends NumberConstructor ? number :
                     T[K]['type'] extends BooleanConstructor ? boolean :
+                    T[K]['type'] extends DateConstructor ? Date :
                     any;
 };
-
 interface Entry {
     id: number;
     data: string;
@@ -75,7 +74,7 @@ function model<T extends SchemaDefinition>(name: string, schema: Schema<T>) {
             const stmt = db.prepare(insert);
             return stmt.run(jsonData);
         },
-
+        
         findOne: (conditions: Partial<InferSchema<T>> = {}) => {
             const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
             const results = allEntries.map(entry => JSON.parse(entry.data) as InferSchema<T>);
@@ -91,7 +90,12 @@ function model<T extends SchemaDefinition>(name: string, schema: Schema<T>) {
                 return Object.entries(conditions).every(([field, value]) => (entry as any)[field] === value);
             });
         },
-
+        //get all data
+        find: () => {
+            const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
+            const results = allEntries.map(entry => JSON.parse(entry.data) as InferSchema<T>);
+            return results;
+        },
         update: (conditions: Partial<InferSchema<T>>, data: Partial<InferSchema<T>>) => {
             schema.validate(data);
             const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
@@ -128,22 +132,22 @@ function model<T extends SchemaDefinition>(name: string, schema: Schema<T>) {
     };
 }
 
-const userSchemaDefinition = {
-    name: { type: String, required: true },
-    email: { type: String },
-    age: { type: Number }
-};
 
-const userSchema = new Schema(userSchemaDefinition);
+const userSchema = new Schema({
+    name: { type: String,
+         required: true
+     },
+    email: { type: String },
+    age: { type: Number },
+});
 const User = model('User', userSchema);
 
-// Example usage
 let userdata = User.findOne({ name: "John" });
 if (!userdata) {
     User.create({ name: "John", age: 100 });
     userdata = User.findOne({ name: "John" });
+    console.log(userdata);
 }
 User.update({ name: "John" }, { age: 150, email: "john@example.com" })
-console.log(userdata);
 
 User.delete({ name: "John" });
