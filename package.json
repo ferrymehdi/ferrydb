@@ -12,9 +12,13 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.10",
     "@types/node": "^20.14.8",
     "nodemon": "^3.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.2"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
   }
 }
