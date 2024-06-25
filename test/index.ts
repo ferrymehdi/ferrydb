@@ -17,7 +17,7 @@ if(!dbuser){
     })
 
 }
-const data = User.findOne({name: "John"})
+const data = User.findOne({name: (x => x == "John")})
 console.log(data);
 
 if(data){

@@ -26,13 +26,6 @@ type QueryConditions<T> = {
 };
 
 
-
-/* interface ModelInstance<T extends SchemaDefinition> {
-    [K in keyof InferSchema<T>]: InferSchema<T>[K];
-    save(): void;
-    delete(): void;
-} */
-
 type ModelInstance<T> = {
     [K in keyof T]: T[K];
 } & {

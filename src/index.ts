@@ -43,7 +43,7 @@ function model<T extends SchemaDefinition>(name: string, schema: Schema<T>){
         const instance: ModelInstance<InferSchema<T>> = {
             ...data,
             save() {
-                const jsonData = JSON.stringify(data);
+                const jsonData = JSON.stringify(this);
                 const updateStmt = db.prepare(`UPDATE ${name} SET data = ? WHERE id = ?`);
                 updateStmt.run(jsonData, id);
             },
