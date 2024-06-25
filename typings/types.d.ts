@@ -1,26 +1,31 @@
-interface Entry {
-    data: string;
-    id: number;
-}
-
 type SchemaDefinition = {
     [key: string]: {
         type: any;
         required?: boolean;
         unique?: boolean;
+        default?: any;
     };
+};
+
+type InferType<T> = 
+    T extends StringConstructor ? string :
+    T extends NumberConstructor ? number :
+    T extends BooleanConstructor ? boolean :
+    T extends DateConstructor ? Date :
+    T extends Array<infer U> ? InferType<U>[] :
+    T extends SchemaDefinition ? InferSchema<T> :
+    any;
+
+type InferSchema<T extends SchemaDefinition> = {
+    [K in keyof T]: InferType<T[K]['type']>;
 };
 
 type ConditionFunction<T> = (value: T) => boolean;
 
-type InferSchema<T extends SchemaDefinition> = {
-    [K in keyof T]: T[K]["type"] extends StringConstructor ? string :
-                    T[K]["type"] extends NumberConstructor ? number :
-                    T[K]["type"] extends BooleanConstructor ? boolean :
-                    T[K]["type"] extends DateConstructor ? Date :
-                    any; // Handle other types as needed
-};
-
+interface Entry {
+    data: string;
+    id: number;
+}
 type QueryConditions<T> = {
     [K in keyof T]?: T[K] | ConditionFunction<T[K]>;
 };
