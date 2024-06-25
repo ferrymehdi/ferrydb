@@ -1,26 +1,8 @@
 import Database from "better-sqlite3";
 import events from 'events';
+import { Entry, InferSchema, SchemaDefinition, QueryConditions, ConditionFunction, ModelInstance } from "./types";
+
 const db = new Database("db.sqlite");
-
-type SchemaDefinition = {
-    [key: string]: {
-        type: any;
-        required?: boolean;
-        unique?: boolean;
-    };
-};
-
-type InferSchema<T extends SchemaDefinition> = {
-    [K in keyof T]: T[K]['type'] extends StringConstructor ? string :
-                    T[K]['type'] extends NumberConstructor ? number :
-                    T[K]['type'] extends BooleanConstructor ? boolean :
-                    T[K]['type'] extends DateConstructor ? Date :
-                    any;
-};
-interface Entry {
-    id: number;
-    data: string;
-}
 
 class Schema<T extends SchemaDefinition> extends events.EventEmitter {
     definition: T;
@@ -47,66 +29,85 @@ class Schema<T extends SchemaDefinition> extends events.EventEmitter {
     }
 }
 
-function model<T extends SchemaDefinition>(name: string, schema: Schema<T>) {
+function model<T extends SchemaDefinition>(name: string, schema: Schema<T>){
     if (!name || !schema) throw new Error("name and schema are required");
 
     const setupTable = `
     CREATE TABLE IF NOT EXISTS ${name} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        data TEXT
+        data TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT
     )`;
 
     db.exec(setupTable);
+    function createModelInstance(id: number, data: InferSchema<T>): ModelInstance<InferSchema<T>> {
+        const instance: ModelInstance<InferSchema<T>> = {
+            ...data,
+            save() {
+                const jsonData = JSON.stringify(data);
+                const updateStmt = db.prepare(`UPDATE ${name} SET data = ? WHERE id = ?`);
+                updateStmt.run(jsonData, id);
+            },
+            delete() {
+                const deleteStmt = db.prepare(`DELETE FROM ${name} WHERE id = ?`);
+                deleteStmt.run(id);
+            }
+        };
+        return instance;
+    }
 
     return {
         create: (data: Partial<InferSchema<T>>) => {
-            // Ensure required fields are present
             schema.validate(data, true);
-            
-            // Add undefined for optional fields if not present
-            const completeData: Partial<InferSchema<T>> = {};
-            for (let field in schema.definition) {
-                completeData[field] = data[field] !== undefined ? data[field] : undefined;
-            }
-
-            const jsonData = JSON.stringify(completeData);
+            const jsonData = JSON.stringify(data);
             const insert = `INSERT INTO ${name} (data) VALUES (?)`;
             const stmt = db.prepare(insert);
-            return stmt.run(jsonData);
-        },
-        
-        findOne: (conditions: Partial<InferSchema<T>> = {}) => {
-            const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
-            const results = allEntries.map(entry => JSON.parse(entry.data) as InferSchema<T>);
-            return results.find(entry => {
-                return Object.entries(conditions).every(([field, value]) => (entry as any)[field] === value);
-            });
+            const res = stmt.run(jsonData);
+            return createModelInstance(Number(res.lastInsertRowid), data as InferSchema<T>);
         },
 
-        findAll: (conditions: Partial<InferSchema<T>> = {}) => {
+        findOne: (conditions: QueryConditions<InferSchema<T>> = {}): ModelInstance<InferSchema<T>> | null => {
             const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
-            const results = allEntries.map(entry => JSON.parse(entry.data) as InferSchema<T>);
-            return results.filter(entry => {
-                return Object.entries(conditions).every(([field, value]) => (entry as any)[field] === value);
-            });
+            const entries = allEntries.map(entry => ({
+                id: entry.id,
+                entry: JSON.parse(entry.data) as InferSchema<T>
+            }));
+            const foundEntry = entries.find(e => matchConditions(e.entry, conditions));
+            if (foundEntry) {
+                return createModelInstance(foundEntry.id, foundEntry.entry);
+            }
+            return null;
         },
-        //get all data
-        find: () => {
+        
+        findAll: (conditions: QueryConditions<InferSchema<T>> = {}): ModelInstance<InferSchema<T>>[] => {
             const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
-            const results = allEntries.map(entry => JSON.parse(entry.data) as InferSchema<T>);
-            return results;
+            const entries = allEntries.map(entry => ({
+                id: entry.id,
+                entry: JSON.parse(entry.data) as InferSchema<T>
+            }));
+            const filteredEntries = entries.filter(e => matchConditions(e.entry, conditions));
+            return filteredEntries.map(e => createModelInstance(e.id, e.entry));
         },
-        update: (conditions: Partial<InferSchema<T>>, data: Partial<InferSchema<T>>) => {
+        
+        find: (): ModelInstance<InferSchema<T>>[] => {
+            const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
+            const entries = allEntries.map(entry => ({
+                id: entry.id,
+                entry: JSON.parse(entry.data) as InferSchema<T>
+            }));
+            return entries.map(e => createModelInstance(e.id, e.entry));
+        },
+
+        update: (conditions: QueryConditions<InferSchema<T>>, data: Partial<InferSchema<T>>): number => {
             schema.validate(data);
             const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
             let updatedRows = 0;
 
             allEntries.forEach(entry => {
                 const entryData = JSON.parse(entry.data) as InferSchema<T>;
-                if (Object.entries(conditions).every(([field, value]) => (entryData as any)[field] === value)) {
+                if (matchConditions(entryData, conditions)) {
                     const updatedData = { ...entryData, ...data };
-                    const updateStmt = db.prepare(`UPDATE ${name} SET data = ? WHERE id = ?`);
-                    updateStmt.run(JSON.stringify(updatedData), entry.id);
+                    const updateStmt = db.prepare(`UPDATE ${name} SET data = ? WHERE data = ?`);
+                    updateStmt.run(JSON.stringify(updatedData), entry.data);
                     updatedRows++;
                 }
             });
@@ -114,15 +115,15 @@ function model<T extends SchemaDefinition>(name: string, schema: Schema<T>) {
             return updatedRows;
         },
 
-        delete: (conditions: Partial<InferSchema<T>>) => {
+        delete: (conditions: QueryConditions<InferSchema<T>>): number => {
             const allEntries = db.prepare(`SELECT * FROM ${name}`).all() as Entry[];
             let deletedRows = 0;
 
             allEntries.forEach(entry => {
                 const entryData = JSON.parse(entry.data) as InferSchema<T>;
-                if (Object.entries(conditions).every(([field, value]) => (entryData as any)[field] === value)) {
-                    const deleteStmt = db.prepare(`DELETE FROM ${name} WHERE id = ?`);
-                    deleteStmt.run(entry.id);
+                if (matchConditions(entryData, conditions)) {
+                    const deleteStmt = db.prepare(`DELETE FROM ${name} WHERE data = ?`);
+                    deleteStmt.run(entry.data);
                     deletedRows++;
                 }
             });
@@ -132,22 +133,15 @@ function model<T extends SchemaDefinition>(name: string, schema: Schema<T>) {
     };
 }
 
-
-const userSchema = new Schema({
-    name: { type: String,
-         required: true
-     },
-    email: { type: String },
-    age: { type: Number },
-});
-const User = model('User', userSchema);
-
-let userdata = User.findOne({ name: "John" });
-if (!userdata) {
-    User.create({ name: "John", age: 100 });
-    userdata = User.findOne({ name: "John" });
-    console.log(userdata);
+function matchConditions<T>(entry: T, conditions: QueryConditions<T>): boolean {
+    return Object.entries(conditions).every(([field, value]) => {
+        const entryValue = (entry as any)[field];
+        if (typeof value === 'function') {
+            return (value as ConditionFunction<any>)(entryValue);
+        } else {
+            return entryValue === value;
+        }
+    });
 }
-User.update({ name: "John" }, { age: 150, email: "john@example.com" })
 
-User.delete({ name: "John" });
+export { Schema, model };
