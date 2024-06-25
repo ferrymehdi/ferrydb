@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import events from 'events';
-import { Entry, InferSchema, SchemaDefinition, QueryConditions, ConditionFunction, ModelInstance } from "./types";
+import { Entry, InferSchema, SchemaDefinition, QueryConditions, ConditionFunction, ModelInstance } from "../typings/types";
 
 const db = new Database("db.sqlite");
 
