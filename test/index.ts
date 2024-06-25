@@ -11,7 +11,6 @@ const User = model('User', userSchema);
 const dbuser = User.findOne({name: "John"})
 if(!dbuser){
     User.create({
-        name: "John",
         email: "john@example.com",
         age: 30
     })
