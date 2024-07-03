@@ -1,5 +1,8 @@
 logs
-/dist
+/src
 /node_modules/
 /jspm_packages/
+
+tsconfig.json
+tsup.config.ts
 test.js
