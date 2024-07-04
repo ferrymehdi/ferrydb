@@ -21,8 +21,9 @@ class Schema<T extends SchemaDefinition> extends events.EventEmitter {
             }
 
             if (data[field] !== undefined && data[field] !== null) {
-                if (typeof data[field] !== type.name.toLowerCase()) {
-                    throw new Error(`${field} must be of type ${type.name}`);
+                //check if data[field] == InferSchema<T>
+                if (typeof data[field] !== type) {
+                    throw new Error(`${field} is not of type ${type}`);
                 }
             }
         }
