@@ -3,3 +3,4 @@ logs
 /node_modules/
 /jspm_packages/
 test.js
+db.sqlite

@@ -6,3 +6,4 @@ logs
 tsconfig.json
 tsup.config.ts
 test.js
+db.sqlite

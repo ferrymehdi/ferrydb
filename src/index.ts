@@ -19,13 +19,6 @@ class Schema<T extends SchemaDefinition> extends events.EventEmitter {
             if (required && !data.hasOwnProperty(field) && isCreate) {
                 throw new Error(`${field} is required`);
             }
-
-            if (data[field] !== undefined && data[field] !== null) {
-                //check if data[field] == InferSchema<T>
-                if (typeof data[field] !== type) {
-                    throw new Error(`${field} is not of type ${type}`);
-                }
-            }
         }
     }
 }
