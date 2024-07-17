@@ -5,7 +5,8 @@ import { Entry, InferSchema, SchemaDefinition, QueryConditions, ConditionFunctio
 let path: string | undefined;
 let db: Database.Database;
 const defaultPath = "db.sqlite"
-function connct(pathToDb: string) {
+function connect(pathToDb: string) {
+    if (!pathToDb.endsWith(".sqlite")) throw new Error("Path must end with .sqlite");
     path = pathToDb;
     db = new Database(pathToDb);
 }
@@ -31,7 +32,7 @@ class Schema<T extends SchemaDefinition> extends events.EventEmitter {
 function model<T extends SchemaDefinition>(name: string, schema: Schema<T>){
     if (!name || !schema) throw new Error("name and schema are required");
     if(!path){
-        connct(defaultPath);
+        connect(defaultPath);
     }
     const setupTable = `
     CREATE TABLE IF NOT EXISTS ${name} (
@@ -144,4 +145,4 @@ function matchConditions<T>(entry: T, conditions: QueryConditions<T>): boolean {
     });
 }
 
-export { Schema, model, connct };
+export { Schema, model, connect };
