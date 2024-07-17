@@ -2,16 +2,20 @@ import Database from "better-sqlite3";
 import events from 'events';
 import { Entry, InferSchema, SchemaDefinition, QueryConditions, ConditionFunction, ModelInstance } from "./types";
 
-const db = new Database("db.sqlite");
+let path: string | undefined;
+let db: Database.Database;
+const defaultPath = "db.sqlite"
+function connct(pathToDb: string) {
+    path = pathToDb;
+    db = new Database(pathToDb);
+}
 
 class Schema<T extends SchemaDefinition> extends events.EventEmitter {
     definition: T;
-
     constructor(definition: T) {
         super();
         this.definition = definition;
     }
-
     validate(data: Partial<InferSchema<T>>, isCreate = false) {
         for (let field in this.definition) {
             const { type, required } = this.definition[field];
@@ -19,19 +23,21 @@ class Schema<T extends SchemaDefinition> extends events.EventEmitter {
             if (required && !data.hasOwnProperty(field) && isCreate) {
                 throw new Error(`${field} is required`);
             }
+
         }
     }
 }
 
 function model<T extends SchemaDefinition>(name: string, schema: Schema<T>){
     if (!name || !schema) throw new Error("name and schema are required");
-
+    if(!path){
+        connct(defaultPath);
+    }
     const setupTable = `
     CREATE TABLE IF NOT EXISTS ${name} (
         data TEXT,
         id INTEGER PRIMARY KEY AUTOINCREMENT
     )`;
-
     db.exec(setupTable);
     function createModelInstance(id: number, data: InferSchema<T>): ModelInstance<InferSchema<T>> {
         const instance: ModelInstance<InferSchema<T>> = {
@@ -138,4 +144,4 @@ function matchConditions<T>(entry: T, conditions: QueryConditions<T>): boolean {
     });
 }
 
-export { Schema, model };
+export { Schema, model, connct };
