@@ -145,5 +145,4 @@ function matchConditions<T>(entry: T, conditions: QueryConditions<T>): boolean {
     });
 }
 
-
 export { Schema, model, connect };
