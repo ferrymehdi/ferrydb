@@ -159,19 +159,19 @@ User.delete({ name: 'John Doe' });
 ### Finding a Record with Condition Function
 
 ```js
-const user = User.findOne({ name: x => x.startsWith("John ")  });
+const user = User.findOne({ name: (x) => x.startsWith("John")  });
 ```
 
 ### Updating Records with Condition Function
 
 ```js
-User.update({ name: x => x.startsWith("John ") }, { age: 31 });
+User.update({ name: (x) => x.startsWith("John") }, { age: 31 });
 ```
 
 ### Deleting a Record with Condition Function
 
 ```js
-User.delete({ name: x => x.startsWith("John ") });
+User.delete({ name: (x) => x.startsWith("John") });
 ```
 
 ## Support
