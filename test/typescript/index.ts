@@ -1,12 +1,12 @@
-import { Schema, model, connect } from '../../dist/index.js';
+import { Schema, model, connect } from 'ferrydb';
 
 // Connect to the database
 connect('database.sqlite');
 
 // Define a schema
 const userSchema = new Schema({
-    name: { type: 'string', required: true },
-    age: { type: 'number', required: true }
+    name: { type: String, required: true },
+    age: { type: Number, required: true }
 });
 
 // Create a model
