@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "nodemon",
+    "save": "git add . && git commit -am 'update' && git push",
     "start": "ts-node index.ts"
   },
   "keywords": [
