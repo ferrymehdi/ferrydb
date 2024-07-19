@@ -1,7 +1,7 @@
-import { Schema, model, connect } from './dist/index.js';
+import { Schema, model, connect } from '../../dist/index.js';
 
 // Connect to the database
-connect('path/to/your/database.sqlite');
+connect('database.sqlite');
 
 // Define a schema
 const userSchema = new Schema({
