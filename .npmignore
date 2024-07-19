@@ -3,6 +3,7 @@ logs
 /node_modules/
 /jspm_packages/
 
+/test/
 tsconfig.json
 tsup.config.ts
 test.js
