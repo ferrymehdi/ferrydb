@@ -1,4 +1,4 @@
-import { Schema, model, connect } from 'ferrydb';
+import { Schema, model, connect } from '../../src/index';
 
 // Connect to the database
 connect('database.sqlite');
@@ -13,13 +13,14 @@ const userSchema = new Schema({
 const User = model('User', userSchema);
 
 // Create a new user
-const newUser = User.create({ name: 'John Doe', age: 30 });
+const newUser = User.create({ age: 100, name: "bader"});
 
 // Find a user
-const user = User.findOne({ name: 'John Doe' });
+//const user = User.findOne({ name: 'John Doe' });
 
 // Update a user
-User.update({ name: 'John Doe' }, { age: 31 });
+//User.update({ name: 'John Doe' }, { age: 31 });
+
 
 // Delete a user
-User.delete({ name: 'John Doe' });
+//User.delete({ name: 'John Doe' });
